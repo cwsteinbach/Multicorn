@@ -150,24 +150,10 @@ class LdapFdw(ForeignDataWrapper):
                     val = qual.value
                 request = unicode_("(&%s(%s=%s))") % (
                     request, qual.field_name, val)
-        self.ldap.search(
+        entry_generator = self.ldap.extend.standard.paged_search(
             self.path, request, self.scope,
-            attributes=list(self.field_definitions), paged_size=1000)
-        self.handle_response(self.ldap.response)
-        cookie = self.get_paged_cookie()
-        while cookie:
-            self.ldap.search(
-                self.path, request, self.scope,
-                attributes=list(self.field_definitions),
-                paged_size=1000, paged_cookie=cookie)
-            cookie = self.get_paged_cookie()
-            self.handle_response(self.ldap.response)
-
-    def get_paged_cookie(self):
-        self.ldap.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
-            
-    def handle_response(self, response):
-        for entry in response:
+            attributes=list(self.field_definitions), paged_size=10, generator=True)
+        for entry in entry_generator:
             # Case insensitive lookup for the attributes
             litem = dict()
             for key, value in entry["attributes"].items():
