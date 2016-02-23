@@ -152,8 +152,22 @@ class LdapFdw(ForeignDataWrapper):
                     request, qual.field_name, val)
         self.ldap.search(
             self.path, request, self.scope,
-            attributes=list(self.field_definitions))
-        for entry in self.ldap.response:
+            attributes=list(self.field_definitions), paged_size=1000)
+        self.handle_response(self.ldap.response)
+        cookie = self.get_paged_cookie()
+        while cookie:
+            self.ldap.search(
+                self.path, request, self.scope,
+                attributes=list(self.field_definitions),
+                paged_size=1000, paged_cookie=cookie)
+            cookie = self.get_paged_cookie()
+            self.handle_response(self.ldap.response)
+
+    def get_paged_cookie(self, result):
+        self.ldap.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+            
+    def handle_response(self, response):
+        for entry in response:
             # Case insensitive lookup for the attributes
             litem = dict()
             for key, value in entry["attributes"].items():
@@ -165,7 +179,7 @@ class LdapFdw(ForeignDataWrapper):
                         value = value[0]
                     litem[pgcolname] = value
             yield litem
-
+            
     def parse_scope(self, scope=None):
         if scope in (None, "", "one"):
             return ldap3.SEARCH_SCOPE_SINGLE_LEVEL
