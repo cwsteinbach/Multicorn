@@ -163,7 +163,7 @@ class LdapFdw(ForeignDataWrapper):
             cookie = self.get_paged_cookie()
             self.handle_response(self.ldap.response)
 
-    def get_paged_cookie(self, result):
+    def get_paged_cookie(self):
         self.ldap.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
             
     def handle_response(self, response):
